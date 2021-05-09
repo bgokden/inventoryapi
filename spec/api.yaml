@@ -1,0 +1,185 @@
+openapi: 3.0.1
+info:
+  title: Inventory API
+  description: 'This is the inventory API'
+  contact:
+    email: berkgokden@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /products:
+    post:
+      summary: Insert or Update products
+      description: Inserts or Updates products
+      operationId: upsertProducts
+      requestBody:
+        description: List of products
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Products'
+        required: true
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        400:
+          description: Insert or update failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      x-codegen-request-body-name: body
+    get:
+      summary: Lists products
+      description: List products
+      operationId: listProducts
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Products'
+        400:
+          description: List failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      x-codegen-request-body-name: body
+  /inventory:
+    post:
+      summary: Inserts or Updates stocks in Inventory
+      description: Inserts or Updates stocks in Inventory
+      operationId: upsertInventory
+      requestBody:
+        description: List of stocks
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+        required: true
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        400:
+          description: Insert or update failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      x-codegen-request-body-name: body
+    get:
+      summary: Get current inventory
+      description: Get current inventory
+      operationId: getInventory
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Inventory'
+        400:
+          description: List failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      x-codegen-request-body-name: body
+  /sell:
+    post:
+      summary: Sell specified stocks and update Inventory
+      description: Sell specified stocks and update Inventory
+      operationId: sellFromInventory
+      requestBody:
+        description: List of stocks
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Inventory'
+        required: true
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        400:
+          description: Sell Operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      x-codegen-request-body-name: body
+components:
+  schemas:
+    Inventory:
+      type: object
+      properties:
+        inventory: 
+          type: array
+          items:
+            $ref: '#/components/schemas/Stock'
+    Stock:
+      type: object
+      properties:
+        art_id:
+          type: string
+        name:
+          type: string
+        stock:
+          type: string
+      required:
+        - art_id
+        - name
+        - stock
+    Products:
+      type: object
+      properties:
+        products: 
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    Product:
+      type: object
+      properties:
+        name:
+          type: string
+        contain_articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'
+      required:
+        - name
+    Article:
+      type: object
+      properties:
+        art_id:
+          type: string
+        amount_of:
+          type: string
+      required:
+        - art_id
+        - amount_of
+    Message:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
