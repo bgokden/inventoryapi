@@ -7,5 +7,6 @@ require (
 	github.com/getkin/kin-openapi v0.53.0
 	github.com/jinzhu/copier v0.3.0
 	github.com/labstack/echo/v4 v4.2.1
+	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.5.1
 )

@@ -1,47 +1,110 @@
 package server
 
 import (
-	"flag"
-	"fmt"
-	"os"
+	"net/http"
 
-	"github.com/deepmap/oapi-codegen/pkg/middleware"
 	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
 
 	"github.com/bgokden/inventoryapi/api"
-	"github.com/bgokden/inventoryapi/impl"
+	"github.com/bgokden/inventoryapi/store"
 )
 
-func Serve() {
-	var port = flag.Int("port", 8080, "Port for HTTP server")
-	flag.Parse()
+type InventoryAPI struct {
+	Store store.Store
+}
 
-	swagger, err := api.GetSwagger()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
-		os.Exit(1)
+func NewInventoryAPI() *InventoryAPI {
+	ia := &InventoryAPI{
+		Store: store.NewInMemoryStore(),
 	}
+	input := &api.Inventory{
+		Inventory: &[]api.Stock{
+			{
+				ArtId: "1",
+				Name:  "test1",
+				Stock: "5",
+			},
+			{
+				ArtId: "2",
+				Name:  "test2",
+				Stock: "3",
+			},
+		},
+	}
+	ia.Store.UpsertInventory(input)
 
-	// Clear out the servers array in the swagger spec, that skips validating
-	// that server names match. We don't know how this thing will be run.
-	// swagger.Servers = nil
+	return ia
+}
 
-	// Create an instance of our handler which satisfies the generated interface
-	serverImpl := impl.NewInventoryAPI()
+// GetInventory converts echo context to params.
+func (ia *InventoryAPI) GetInventory(ctx echo.Context) error {
+	// Invoke the callback with all the unmarshalled arguments
+	result, err := ia.Store.ListInventory()
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, result)
+}
 
-	// This is how you set up a basic Echo router
-	e := echo.New()
-	// Log all requests
-	e.Use(echomiddleware.Logger())
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	e.Use(middleware.OapiRequestValidator(swagger))
+// UpsertInventory converts echo context to params.
+func (ia *InventoryAPI) UpsertInventory(ctx echo.Context) error {
+	var err error
+	var newInventory api.Inventory
+	err = ctx.Bind(&newInventory)
+	if err != nil {
+		return err
+	}
+	err = ia.Store.UpsertInventory(&newInventory)
+	return err
+}
 
-	// We now register our petStore above as the handler for the interface
-	// api.RegisterHandlers(e, serverImpl)
-	api.RegisterHandlersWithBaseURL(e, serverImpl, "/v0")
+/*
+curl -v --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"inventory":[{"art_id":"1","name":"test1","stock":"5"},{"art_id":"2","name":"test2","stock":"3"}]}' \
+  http://localhost:8080/inventory
+*/
 
-	// And we serve HTTP until the world ends.
-	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%d", *port)))
+// ListProducts converts echo context to params.
+func (ia *InventoryAPI) ListProducts(ctx echo.Context) error {
+	// Invoke the callback with all the unmarshalled arguments
+	result, err := ia.Store.ListProducts()
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, result)
+}
+
+// UpsertProducts converts echo context to params.
+func (ia *InventoryAPI) UpsertProducts(ctx echo.Context) error {
+	var err error
+	var newProducts api.Products
+	err = ctx.Bind(&newProducts)
+	if err != nil {
+		return err
+	}
+	err = ia.Store.UpsertProducts(&newProducts)
+	return err
+}
+
+// ListProductStocks converts echo context to params.
+func (ia *InventoryAPI) ListProductStocks(ctx echo.Context) error {
+	// Invoke the callback with all the unmarshalled arguments
+	result, err := ia.Store.ListProductStocks()
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, result)
+}
+
+// SellFromInventory converts echo context to params.
+func (ia *InventoryAPI) SellFromInventory(ctx echo.Context) error {
+	var err error
+	var sellOrder api.SellOrder
+	err = ctx.Bind(&sellOrder)
+	if err != nil {
+		return err
+	}
+	err = ia.Store.SellProducts(&sellOrder)
+	return err
 }
