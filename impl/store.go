@@ -174,3 +174,51 @@ func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[strin
 	}
 	return nil
 }
+
+// type ProductStock struct {
+// 	Product api.Product
+// 	Stock   int
+// }
+
+func (s *InMemoryStore) ListProductsWithStock() ([]api.ProductStock, error) {
+	s.RLock()
+	defer s.RUnlock()
+	productStocks := make([]api.ProductStock, 0, len(s.Products))
+	for _, product := range s.Products {
+		stock := s.GetStockForProduct(&product)
+		if stock > 0 {
+			productStocks = append(productStocks, api.ProductStock{
+				Product: product,
+				Stock:   stock,
+			})
+		}
+	}
+	return productStocks, nil
+}
+
+func (s *InMemoryStore) GetStockForProduct(product *api.Product) int {
+	minimumNumberOfPossibleArticles := -1
+	for _, articles := range *product.ContainArticles {
+		changePerArticle, err := strconv.Atoi(articles.AmountOf)
+		if err != nil || changePerArticle <= 0 {
+			return 0
+		}
+		if currentArticleStock, ok := s.Inventory[articles.ArtId]; ok {
+			currentArticleAvailability, err := strconv.Atoi(currentArticleStock.Stock)
+			if err != nil || currentArticleAvailability == 0 {
+				return 0
+			}
+			numberOfPossibleArticles := currentArticleAvailability / changePerArticle
+			if numberOfPossibleArticles < minimumNumberOfPossibleArticles || minimumNumberOfPossibleArticles == -1 {
+				minimumNumberOfPossibleArticles = numberOfPossibleArticles
+			}
+		} else {
+			return 0
+		}
+	}
+	if minimumNumberOfPossibleArticles == -1 {
+		// This shows an input validation problem
+		return 0
+	}
+	return minimumNumberOfPossibleArticles
+}

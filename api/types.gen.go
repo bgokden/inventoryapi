@@ -19,15 +19,37 @@ type Message struct {
 	Message string `json:"message"`
 }
 
+// Order defines model for Order.
+type Order struct {
+	Number      int    `json:"number"`
+	ProductName string `json:"product_name"`
+}
+
 // Product defines model for Product.
 type Product struct {
 	ContainArticles *[]Article `json:"contain_articles,omitempty"`
 	Name            string     `json:"name"`
 }
 
+// ProductStock defines model for ProductStock.
+type ProductStock struct {
+	Product Product `json:"product"`
+	Stock   int     `json:"stock"`
+}
+
+// ProductStocks defines model for ProductStocks.
+type ProductStocks struct {
+	Products *[]ProductStock `json:"products,omitempty"`
+}
+
 // Products defines model for Products.
 type Products struct {
 	Products *[]Product `json:"products,omitempty"`
+}
+
+// SellOrder defines model for SellOrder.
+type SellOrder struct {
+	Orders []Order `json:"orders"`
 }
 
 // Stock defines model for Stock.
@@ -44,7 +66,7 @@ type UpsertInventoryJSONBody Inventory
 type UpsertProductsJSONBody Products
 
 // SellFromInventoryJSONBody defines parameters for SellFromInventory.
-type SellFromInventoryJSONBody Inventory
+type SellFromInventoryJSONBody SellOrder
 
 // UpsertInventoryJSONRequestBody defines body for UpsertInventory for application/json ContentType.
 type UpsertInventoryJSONRequestBody UpsertInventoryJSONBody

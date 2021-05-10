@@ -21,7 +21,10 @@ type ServerInterface interface {
 	// Insert or Update products
 	// (POST /products)
 	UpsertProducts(ctx echo.Context) error
-	// Sell specified stocks and update Inventory
+	// Lists products with stock
+	// (GET /productstock)
+	ListProductStocks(ctx echo.Context) error
+	// Sell specified products and update Inventory
 	// (POST /sell)
 	SellFromInventory(ctx echo.Context) error
 }
@@ -67,6 +70,15 @@ func (w *ServerInterfaceWrapper) UpsertProducts(ctx echo.Context) error {
 	return err
 }
 
+// ListProductStocks converts echo context to params.
+func (w *ServerInterfaceWrapper) ListProductStocks(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListProductStocks(ctx)
+	return err
+}
+
 // SellFromInventory converts echo context to params.
 func (w *ServerInterfaceWrapper) SellFromInventory(ctx echo.Context) error {
 	var err error
@@ -108,6 +120,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/inventory", wrapper.UpsertInventory)
 	router.GET(baseURL+"/products", wrapper.ListProducts)
 	router.POST(baseURL+"/products", wrapper.UpsertProducts)
+	router.GET(baseURL+"/productstock", wrapper.ListProductStocks)
 	router.POST(baseURL+"/sell", wrapper.SellFromInventory)
 
 }

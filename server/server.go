@@ -25,7 +25,7 @@ func Serve() {
 
 	// Clear out the servers array in the swagger spec, that skips validating
 	// that server names match. We don't know how this thing will be run.
-	swagger.Servers = nil
+	// swagger.Servers = nil
 
 	// Create an instance of our handler which satisfies the generated interface
 	serverImpl := impl.NewInventoryAPI()
@@ -39,7 +39,8 @@ func Serve() {
 	e.Use(middleware.OapiRequestValidator(swagger))
 
 	// We now register our petStore above as the handler for the interface
-	api.RegisterHandlers(e, serverImpl)
+	// api.RegisterHandlers(e, serverImpl)
+	api.RegisterHandlersWithBaseURL(e, serverImpl, "/v0")
 
 	// And we serve HTTP until the world ends.
 	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%d", *port)))

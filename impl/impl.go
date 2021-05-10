@@ -84,6 +84,15 @@ func (w *InventoryAPI) UpsertProducts(ctx echo.Context) error {
 	return err
 }
 
+// ListProductStocks converts echo context to params.
+func (w *InventoryAPI) ListProductStocks(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListProductStocks(ctx)
+	return err
+}
+
 // SellFromInventory converts echo context to params.
 func (w *InventoryAPI) SellFromInventory(ctx echo.Context) error {
 	var err error

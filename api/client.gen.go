@@ -104,6 +104,9 @@ type ClientInterface interface {
 
 	UpsertProducts(ctx context.Context, body UpsertProductsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListProductStocks request
+	ListProductStocks(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SellFromInventory request  with any body
 	SellFromInventoryWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -172,6 +175,18 @@ func (c *Client) UpsertProductsWithBody(ctx context.Context, contentType string,
 
 func (c *Client) UpsertProducts(ctx context.Context, body UpsertProductsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpsertProductsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListProductStocks(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListProductStocksRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -340,6 +355,33 @@ func NewUpsertProductsRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewListProductStocksRequest generates requests for ListProductStocks
+func NewListProductStocksRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/productstock")
+	if operationPath[0] == '/' {
+		operationPath = operationPath[1:]
+	}
+	operationURL := url.URL{
+		Path: operationPath,
+	}
+
+	queryURL := serverURL.ResolveReference(&operationURL)
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSellFromInventoryRequest calls the generic SellFromInventory builder with application/json body
 func NewSellFromInventoryRequest(server string, body SellFromInventoryJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -439,6 +481,9 @@ type ClientWithResponsesInterface interface {
 
 	UpsertProductsWithResponse(ctx context.Context, body UpsertProductsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertProductsResponse, error)
 
+	// ListProductStocks request
+	ListProductStocksWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProductStocksResponse, error)
+
 	// SellFromInventory request  with any body
 	SellFromInventoryWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SellFromInventoryResponse, error)
 
@@ -537,6 +582,29 @@ func (r UpsertProductsResponse) StatusCode() int {
 	return 0
 }
 
+type ListProductStocksResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ProductStocks
+	JSON400      *Message
+}
+
+// Status returns HTTPResponse.Status
+func (r ListProductStocksResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListProductStocksResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type SellFromInventoryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -610,6 +678,15 @@ func (c *ClientWithResponses) UpsertProductsWithResponse(ctx context.Context, bo
 		return nil, err
 	}
 	return ParseUpsertProductsResponse(rsp)
+}
+
+// ListProductStocksWithResponse request returning *ListProductStocksResponse
+func (c *ClientWithResponses) ListProductStocksWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProductStocksResponse, error) {
+	rsp, err := c.ListProductStocks(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListProductStocksResponse(rsp)
 }
 
 // SellFromInventoryWithBodyWithResponse request with arbitrary body returning *SellFromInventoryResponse
@@ -744,6 +821,39 @@ func ParseUpsertProductsResponse(rsp *http.Response) (*UpsertProductsResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Message
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Message
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListProductStocksResponse parses an HTTP response from a ListProductStocksWithResponse call
+func ParseListProductStocksResponse(rsp *http.Response) (*ListProductStocksResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListProductStocksResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ProductStocks
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
