@@ -16,6 +16,7 @@ type Store interface {
 	GetStock(string) (*api.Stock, error)
 	ListInventory() (*api.Inventory, error)
 	UpsertProducts(*api.Products) error
+	ListProducts() (*api.Products, error)
 	ListProductStocks() (*api.ProductStocks, error)
 	SellProducts(*api.SellOrder) error
 }
@@ -73,7 +74,7 @@ func (s *InMemoryStore) GetStock(artId string) (*api.Stock, error) {
 		return &stockCopy, nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("artId %v does not exists", artId))
+	return nil, errors.New(fmt.Sprintf("ArtId %v does not exists", artId))
 }
 
 func (s *InMemoryStore) ListInventory() (*api.Inventory, error) {
@@ -87,6 +88,20 @@ func (s *InMemoryStore) ListInventory() (*api.Inventory, error) {
 	}
 	return &api.Inventory{
 		Inventory: &stocks,
+	}, nil
+}
+
+func (s *InMemoryStore) ListProducts() (*api.Products, error) {
+	s.RLock()
+	defer s.RUnlock()
+	productList := make([]api.Product, 0, len(s.Products))
+	for _, product := range s.Products {
+		productCopy := api.Product{}
+		copier.Copy(&productCopy, &product)
+		productList = append(productList, product)
+	}
+	return &api.Products{
+		Products: &productList,
 	}, nil
 }
 
@@ -129,7 +144,7 @@ func (s *InMemoryStore) CalculateInventoryChangeMap(sellOrder *api.SellOrder) (m
 				inventoryChangeMap[articles.ArtId] = change
 			}
 		} else {
-			return nil, errors.New(fmt.Sprintf("Product doesn't exists: %v\n", order.ProductName))
+			return nil, errors.New(fmt.Sprintf("Product %v doesn't exists", order.ProductName))
 		}
 	}
 	return inventoryChangeMap, nil
@@ -151,7 +166,7 @@ func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[strin
 				return err
 			}
 			if currentStock < change {
-				return errors.New(fmt.Sprintf("There is not enough stock for %v", articleID))
+				return errors.New(fmt.Sprintf("There is not enough stock for Article %v", articleID))
 			}
 			if apply {
 				newStock := currentStock - change
@@ -163,7 +178,7 @@ func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[strin
 				}
 			}
 		} else {
-			return errors.New(fmt.Sprintf("Article %v does not exist.", articleID))
+			return errors.New(fmt.Sprintf("Article %v does not exist", articleID))
 		}
 	}
 	return nil

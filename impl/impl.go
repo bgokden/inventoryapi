@@ -8,8 +8,7 @@ import (
 )
 
 type InventoryAPI struct {
-	Store   Store
-	Handler api.ServerInterface
+	Store Store
 }
 
 func NewInventoryAPI() *InventoryAPI {
@@ -38,7 +37,6 @@ func NewInventoryAPI() *InventoryAPI {
 // GetInventory converts echo context to params.
 func (w *InventoryAPI) GetInventory(ctx echo.Context) error {
 	// Invoke the callback with all the unmarshalled arguments
-	ctx.Logger().Printf("Here\n")
 	result, err := w.Store.ListInventory()
 	if err != nil {
 		return err
@@ -54,7 +52,6 @@ func (w *InventoryAPI) UpsertInventory(ctx echo.Context) error {
 	if err != nil {
 		return err
 	}
-	ctx.Logger().Printf("Inv: %v\n", newInventory.Inventory)
 	err = w.Store.UpsertInventory(&newInventory)
 	return err
 }
@@ -68,36 +65,44 @@ curl -v --header "Content-Type: application/json" \
 
 // ListProducts converts echo context to params.
 func (w *InventoryAPI) ListProducts(ctx echo.Context) error {
-	var err error
-
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.ListProducts(ctx)
-	return err
+	result, err := w.Store.ListProducts()
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, result)
 }
 
 // UpsertProducts converts echo context to params.
 func (w *InventoryAPI) UpsertProducts(ctx echo.Context) error {
 	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.UpsertProducts(ctx)
+	var newProducts api.Products
+	err = ctx.Bind(&newProducts)
+	if err != nil {
+		return err
+	}
+	err = w.Store.UpsertProducts(&newProducts)
 	return err
 }
 
 // ListProductStocks converts echo context to params.
 func (w *InventoryAPI) ListProductStocks(ctx echo.Context) error {
-	var err error
-
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.ListProductStocks(ctx)
-	return err
+	result, err := w.Store.ListProductStocks()
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(http.StatusOK, result)
 }
 
 // SellFromInventory converts echo context to params.
 func (w *InventoryAPI) SellFromInventory(ctx echo.Context) error {
 	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.SellFromInventory(ctx)
+	var sellOrder api.SellOrder
+	err = ctx.Bind(&sellOrder)
+	if err != nil {
+		return err
+	}
+	err = w.Store.SellProducts(&sellOrder)
 	return err
 }
