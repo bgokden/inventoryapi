@@ -16,6 +16,8 @@ type Store interface {
 	GetStock(string) (*api.Stock, error)
 	ListInventory() (*api.Inventory, error)
 	UpsertProducts(*api.Products) error
+	ListProductStocks() (*api.ProductStocks, error)
+	SellProducts(*api.SellOrder) error
 }
 
 type InMemoryStore struct {
@@ -27,6 +29,7 @@ type InMemoryStore struct {
 func NewInMemoryStore() Store {
 	return &InMemoryStore{
 		Inventory: make(map[string]api.Stock, 0),
+		Products:  make(map[string]api.Product, 0),
 	}
 }
 
@@ -96,17 +99,10 @@ func (s *InMemoryStore) UpsertProducts(products *api.Products) error {
 	return nil
 }
 
-type Order struct {
-	ProductName string
-	Number      int
-}
-
-type SellOrder struct {
-	Orders []Order
-}
-
-func (s *InMemoryStore) SellProducts(orders *SellOrder) error {
-	inventoryChangeMap, err := s.CalculateInventoryChangeMap(orders)
+func (s *InMemoryStore) SellProducts(sellOrder *api.SellOrder) error {
+	s.Lock()
+	defer s.Unlock()
+	inventoryChangeMap, err := s.CalculateInventoryChangeMap(sellOrder)
 	if err != nil {
 		return err
 	}
@@ -117,9 +113,9 @@ func (s *InMemoryStore) SellProducts(orders *SellOrder) error {
 	return s.DecrementInventory(inventoryChangeMap)
 }
 
-func (s *InMemoryStore) CalculateInventoryChangeMap(orders *SellOrder) (map[string]int, error) {
-	inventoryChangeMap := make(map[string]int, len(orders.Orders))
-	for _, order := range orders.Orders {
+func (s *InMemoryStore) CalculateInventoryChangeMap(sellOrder *api.SellOrder) (map[string]int, error) {
+	inventoryChangeMap := make(map[string]int, len(sellOrder.Orders))
+	for _, order := range sellOrder.Orders {
 		if product, ok := s.Products[order.ProductName]; ok {
 			for _, articles := range *product.ContainArticles {
 				changePerArticle, err := strconv.Atoi(articles.AmountOf)
@@ -130,7 +126,7 @@ func (s *InMemoryStore) CalculateInventoryChangeMap(orders *SellOrder) (map[stri
 				if currentChange, ok := inventoryChangeMap[articles.ArtId]; ok {
 					change = change + currentChange
 				}
-				inventoryChangeMap[order.ProductName] = change
+				inventoryChangeMap[articles.ArtId] = change
 			}
 		} else {
 			return nil, errors.New(fmt.Sprintf("Product doesn't exists: %v\n", order.ProductName))
@@ -148,8 +144,6 @@ func (s *InMemoryStore) CheckInventory(inventoryChangeMap map[string]int) error 
 }
 
 func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[string]int, apply bool) error {
-	s.Lock()
-	defer s.Unlock()
 	for articleID, change := range inventoryChangeMap {
 		if stock, ok := s.Inventory[articleID]; ok {
 			currentStock, err := strconv.Atoi(stock.Stock)
@@ -175,12 +169,7 @@ func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[strin
 	return nil
 }
 
-// type ProductStock struct {
-// 	Product api.Product
-// 	Stock   int
-// }
-
-func (s *InMemoryStore) ListProductsWithStock() ([]api.ProductStock, error) {
+func (s *InMemoryStore) ListProductStocks() (*api.ProductStocks, error) {
 	s.RLock()
 	defer s.RUnlock()
 	productStocks := make([]api.ProductStock, 0, len(s.Products))
@@ -193,7 +182,9 @@ func (s *InMemoryStore) ListProductsWithStock() ([]api.ProductStock, error) {
 			})
 		}
 	}
-	return productStocks, nil
+	return &api.ProductStocks{
+		Products: &productStocks,
+	}, nil
 }
 
 func (s *InMemoryStore) GetStockForProduct(product *api.Product) int {
