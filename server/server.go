@@ -9,31 +9,35 @@ import (
 	"github.com/bgokden/inventoryapi/store"
 )
 
+/*
+	// Inventory API implements these methods
+	// Get current inventory
+	// (GET /inventory)
+	GetInventory(ctx echo.Context) error
+	// Inserts or Updates stocks in Inventory
+	// (POST /inventory)
+	UpsertInventory(ctx echo.Context) error
+	// Lists products
+	// (GET /products)
+	ListProducts(ctx echo.Context) error
+	// Insert or Update products
+	// (POST /products)
+	UpsertProducts(ctx echo.Context) error
+	// Lists products with stock
+	// (GET /productstock)
+	ListProductStocks(ctx echo.Context) error
+	// Sell specified products and update Inventory
+	// (POST /sell)
+	SellFromInventory(ctx echo.Context) error
+*/
 type InventoryAPI struct {
 	Store store.Store
 }
 
 func NewInventoryAPI() *InventoryAPI {
-	ia := &InventoryAPI{
+	return &InventoryAPI{
 		Store: store.NewInMemoryStore(),
 	}
-	input := &api.Inventory{
-		Inventory: &[]api.Stock{
-			{
-				ArtId: "1",
-				Name:  "test1",
-				Stock: "5",
-			},
-			{
-				ArtId: "2",
-				Name:  "test2",
-				Stock: "3",
-			},
-		},
-	}
-	ia.Store.UpsertInventory(input)
-
-	return ia
 }
 
 // GetInventory converts echo context to params.
