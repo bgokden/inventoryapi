@@ -1,0 +1,13 @@
+.openapi-generator-ignore
+Apis/DefaultApi.md
+Models/Article.md
+Models/Inventory.md
+Models/Message.md
+Models/Order.md
+Models/Product.md
+Models/ProductStock.md
+Models/ProductStocks.md
+Models/Products.md
+Models/SellOrder.md
+Models/Stock.md
+README.md

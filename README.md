@@ -66,6 +66,11 @@ This project follows API Driven Design Approach. OpenAPI 3 spefication can be fo
 ./buildspec.sh
 ```
 
+## Documents generated with openapi-generator
+```bash
+openapi-generator generate -i ./spec/api.yaml -g markdown -o docs
+```
+
 This will generate source codes server, client, types and spec in `./api` folder.
 These files includes default implementations and interfaces for server and types.
 Also allows spec validation.
@@ -76,7 +81,7 @@ By following this practice, development follows in this order:
 
 - update API Spec
 
-- generate code
+- generate code and documents
 
 - fix interface changes and tests
 
@@ -130,8 +135,6 @@ curl -v --header "Content-Type: application/json" \
 ```
 
 
-
-
 # TODO:
 
 - Add more tests and edge cases.
@@ -143,6 +146,9 @@ curl -v --header "Content-Type: application/json" \
 - For large dataset, paging will be needed in list endpoints.
 
 - Write a kubernetes helm chart.
+
+
+
 
 
 
