@@ -1,12 +1,14 @@
 package store_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/bgokden/inventoryapi/api"
 	"github.com/bgokden/inventoryapi/store"
+	"github.com/bgokden/inventoryapi/util"
 )
 
 var productList = []api.Product{
@@ -98,7 +100,7 @@ func TestInMemoryStoreUpsertProductsAndListStocks(t *testing.T) {
 	productStocks, err := s.ListProductStocks()
 	assert.Nil(t, err)
 
-	assert.Equal(t, expectedProductStocksList, *productStocks.Products)
+	assert.Equal(t, util.SortProductStocksList(expectedProductStocksList), util.SortProductStocksList(*productStocks.Products))
 }
 
 func TestInMemoryStoreUpsertProductsAndSellAndListStocks(t *testing.T) {
@@ -142,12 +144,12 @@ func TestInMemoryStoreUpsertProductsAndSellAndListStocks(t *testing.T) {
 	listProducts, err := s.ListProducts()
 	assert.Nil(t, err)
 
-	assert.Equal(t, products.Products, listProducts.Products)
+	assert.Equal(t, util.SortProductList(*products.Products), util.SortProductList(*listProducts.Products))
 
 	productStocks, err := s.ListProductStocks()
 	assert.Nil(t, err)
 
-	assert.Equal(t, expectedProductStocksList, *productStocks.Products)
+	assert.Equal(t, util.SortProductStocksList(expectedProductStocksList), util.SortProductStocksList(*productStocks.Products))
 }
 
 func TestInMemoryStoreUpsertProductsAndSellFail(t *testing.T) {
@@ -175,7 +177,7 @@ func TestInMemoryStoreUpsertProductsAndSellFail(t *testing.T) {
 	}
 
 	err = s.SellProducts(sellOrder)
-	assert.EqualError(t, err, "There is not enough stock for Article 2")
+	assert.True(t, strings.HasPrefix(err.Error(), "There is not enough stock for Article"))
 }
 
 func TestInMemoryStoreUpsertProductsAndSellAndRemoveFromListStocks(t *testing.T) {
@@ -215,5 +217,5 @@ func TestInMemoryStoreUpsertProductsAndSellAndRemoveFromListStocks(t *testing.T)
 	productStocks, err := s.ListProductStocks()
 	assert.Nil(t, err)
 
-	assert.Equal(t, expectedProductStocksList, *productStocks.Products)
+	assert.Equal(t, util.SortProductStocksList(expectedProductStocksList), util.SortProductStocksList(*productStocks.Products))
 }

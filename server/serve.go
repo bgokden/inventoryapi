@@ -9,16 +9,13 @@ import (
 	"github.com/bgokden/inventoryapi/api"
 )
 
+// CreateEchoServer creates an echo server with inventory api implementation
 func CreateEchoServer() (*echo.Echo, error) {
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
 		return nil, errors.Errorf("Error loading swagger spec\n: %s", err)
 	}
-
-	// Clear out the servers array in the swagger spec, that skips validating
-	// that server names match. We don't know how this thing will be run.
-	// swagger.Servers = nil
 
 	// Create an instance of our handler which satisfies the generated interface
 	serverImpl := NewInventoryAPI()
@@ -31,8 +28,8 @@ func CreateEchoServer() (*echo.Echo, error) {
 	// OpenAPI schema.
 	e.Use(middleware.OapiRequestValidator(swagger))
 
-	// We now register our petStore above as the handler for the interface
-	// api.RegisterHandlers(e, serverImpl)
+	// We now register our serverImple above as the handler for the interface
+	// It is possible to register multiple services and versions
 	api.RegisterHandlersWithBaseURL(e, serverImpl, "/v0")
 
 	return e, nil

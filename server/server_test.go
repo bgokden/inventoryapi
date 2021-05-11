@@ -9,29 +9,8 @@ import (
 
 	"github.com/bgokden/inventoryapi/api"
 	"github.com/bgokden/inventoryapi/server"
+	"github.com/bgokden/inventoryapi/util"
 )
-
-/*
-	// Inventory API implements these methods
-	// Get current inventory
-	// (GET /inventory)
-	GetInventory(ctx echo.Context) error
-	// Inserts or Updates stocks in Inventory
-	// (POST /inventory)
-	UpsertInventory(ctx echo.Context) error
-	// Lists products
-	// (GET /products)
-	ListProducts(ctx echo.Context) error
-	// Insert or Update products
-	// (POST /products)
-	UpsertProducts(ctx echo.Context) error
-	// Lists products with stock
-	// (GET /productstock)
-	ListProductStocks(ctx echo.Context) error
-	// Sell specified products and update Inventory
-	// (POST /sell)
-	SellFromInventory(ctx echo.Context) error
-*/
 
 var productList = []api.Product{
 	{
@@ -95,7 +74,7 @@ var stockList = []api.Stock{
 
 func TestUpsertInventoryAndGetInventory(t *testing.T) {
 	var err error
-	// Here, we Initialize echo
+	// Here we initialize our test server
 	e, err := server.CreateEchoServer()
 	assert.Nil(t, err)
 
@@ -114,15 +93,15 @@ func TestUpsertInventoryAndGetInventory(t *testing.T) {
 		},
 	}
 	result := testutil.NewRequest().Post("/v0/inventory").WithJsonBody(newInventory).Go(t, e)
-	// We expect 200 code on successful pet insertion
+	// We expect 200 code on successful inventory update
 	assert.Equal(t, http.StatusOK, result.Code())
 
-	// Test the getter function.
+	// Test the get inventory function.
 	result = testutil.NewRequest().Get("/v0/inventory").WithAcceptJson().Go(t, e)
 	var resultInventory api.Inventory
 	err = result.UnmarshalBodyToObject(&resultInventory)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, newInventory, resultInventory)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortInventoryList(*newInventory.Inventory), util.SortInventoryList(*resultInventory.Inventory))
 
 	addtionalInventory := api.Inventory{
 		Inventory: &[]api.Stock{
@@ -144,7 +123,7 @@ func TestUpsertInventoryAndGetInventory(t *testing.T) {
 		},
 	}
 	result = testutil.NewRequest().Post("/v0/inventory").WithJsonBody(addtionalInventory).Go(t, e)
-	// We expect 200 code on successful pet insertion
+	// We expect 200 code on successful additonal update to inventory
 	assert.Equal(t, http.StatusOK, result.Code())
 
 	expectedInventory := api.Inventory{
@@ -162,16 +141,15 @@ func TestUpsertInventoryAndGetInventory(t *testing.T) {
 		},
 	}
 
-	// Test the getter function.
+	// Test with the get inventory function.
 	result = testutil.NewRequest().Get("/v0/inventory").WithAcceptJson().Go(t, e)
 	err = result.UnmarshalBodyToObject(&resultInventory)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, expectedInventory, resultInventory)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortInventoryList(*expectedInventory.Inventory), util.SortInventoryList(*resultInventory.Inventory))
 }
 
 func TestUpsertProductsAndListProducts(t *testing.T) {
 	var err error
-	// Here, we Initialize echo
 	e, err := server.CreateEchoServer()
 	assert.Nil(t, err)
 
@@ -179,30 +157,26 @@ func TestUpsertProductsAndListProducts(t *testing.T) {
 		Products: &productList,
 	}
 	result := testutil.NewRequest().Post("/v0/products").WithJsonBody(newProducts).Go(t, e)
-	// We expect 200 code on successful pet insertion
 	assert.Equal(t, http.StatusOK, result.Code())
 
-	// Test the getter function.
 	result = testutil.NewRequest().Get("/v0/products").WithAcceptJson().Go(t, e)
 	var resultProducts api.Products
 	err = result.UnmarshalBodyToObject(&resultProducts)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, newProducts, resultProducts)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortProductList(*newProducts.Products), util.SortProductList(*resultProducts.Products))
 
 	expectedProducts := api.Products{
 		Products: &productList,
 	}
 
-	// Test the getter function.
 	result = testutil.NewRequest().Get("/v0/products").WithAcceptJson().Go(t, e)
 	err = result.UnmarshalBodyToObject(&resultProducts)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, expectedProducts, resultProducts)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortProductList(*expectedProducts.Products), util.SortProductList(*resultProducts.Products))
 }
 
 func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 	var err error
-	// Here, we Initialize echo
 	e, err := server.CreateEchoServer()
 	assert.Nil(t, err)
 
@@ -210,7 +184,6 @@ func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 		Products: &productList,
 	}
 	result := testutil.NewRequest().Post("/v0/products").WithJsonBody(newProducts).Go(t, e)
-	// We expect 200 code on successful pet insertion
 	assert.Equal(t, http.StatusOK, result.Code())
 
 	newInventory := api.Inventory{
@@ -218,7 +191,6 @@ func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 	}
 
 	result = testutil.NewRequest().Post("/v0/inventory").WithJsonBody(newInventory).Go(t, e)
-	// We expect 200 code on successful pet insertion
 	assert.Equal(t, http.StatusOK, result.Code())
 
 	expectedProductStockList := []api.ProductStock{
@@ -231,15 +203,16 @@ func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 			Stock:   1,
 		},
 	}
+
 	expectedProductStocks := api.ProductStocks{
 		Products: &expectedProductStockList,
 	}
-	// Test the getter function.
+
 	result = testutil.NewRequest().Get("/v0/productstock").WithAcceptJson().Go(t, e)
 	var resultProductStocks api.ProductStocks
 	err = result.UnmarshalBodyToObject(&resultProductStocks)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, expectedProductStocks, resultProductStocks)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortProductStocksList(*expectedProductStocks.Products), util.SortProductStocksList(*resultProductStocks.Products))
 
 	sellOrder := &api.SellOrder{
 		Orders: []api.Order{
@@ -251,10 +224,11 @@ func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 	}
 
 	result = testutil.NewRequest().Post("/v0/sell").WithJsonBody(sellOrder).Go(t, e)
-	// We expect 200 code on successful pet insertion
 	assert.Equal(t, http.StatusOK, result.Code())
 
-	// Product stocks after sale
+	// Product stocks after sale has changed.
+	// Sale of a product may influence another products stock.
+	// It is covered in this test
 	expectedProductStockList2 := []api.ProductStock{
 		{
 			Product: productList[0],
@@ -267,6 +241,6 @@ func TestUpsertsAndListProductStocksAndSellProduct(t *testing.T) {
 
 	result = testutil.NewRequest().Get("/v0/productstock").WithAcceptJson().Go(t, e)
 	err = result.UnmarshalBodyToObject(&resultProductStocks)
-	assert.NoError(t, err, "error getting pet")
-	assert.Equal(t, expectedProductStocks2, resultProductStocks)
+	assert.NoError(t, err)
+	assert.Equal(t, util.SortProductStocksList(*expectedProductStocks2.Products), util.SortProductStocksList(*resultProductStocks.Products))
 }

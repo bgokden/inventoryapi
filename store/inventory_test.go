@@ -7,6 +7,7 @@ import (
 
 	"github.com/bgokden/inventoryapi/api"
 	"github.com/bgokden/inventoryapi/store"
+	"github.com/bgokden/inventoryapi/util"
 )
 
 func TestInMemoryStoreUpsertAndList(t *testing.T) {
@@ -76,7 +77,7 @@ func TestInMemoryStoreUpsertNameChangeAndList(t *testing.T) {
 
 	output, err := s.ListInventory()
 	assert.Nil(t, err)
-	assert.Equal(t, expected, output)
+	assert.Equal(t, util.SortInventoryList(*expected.Inventory), util.SortInventoryList(*output.Inventory))
 }
 
 func TestInMemoryStoreUpsertNegativeAndList(t *testing.T) {
@@ -127,7 +128,7 @@ func TestInMemoryStoreUpsertNegativeAndList(t *testing.T) {
 
 	output, err := s.ListInventory()
 	assert.Nil(t, err)
-	assert.Equal(t, expected, output)
+	assert.Equal(t, util.SortInventoryList(*expected.Inventory), util.SortInventoryList(*output.Inventory))
 }
 
 func TestInMemoryStoreUpsertDeleteAndList(t *testing.T) {
