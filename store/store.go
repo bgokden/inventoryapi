@@ -11,6 +11,7 @@ import (
 	"github.com/bgokden/inventoryapi/api"
 )
 
+// Store interface implements defines a common functions
 type Store interface {
 	UpsertInventory(*api.Inventory) error
 	GetStock(string) (*api.Stock, error)
@@ -21,12 +22,14 @@ type Store interface {
 	SellProducts(*api.SellOrder) error
 }
 
+// InMemoryStore implements Store interface and holds data
 type InMemoryStore struct {
 	sync.RWMutex
 	Inventory map[string]api.Stock
 	Products  map[string]api.Product
 }
 
+// NewInMemoryStore creates an InMemoryStore with default values
 func NewInMemoryStore() Store {
 	return &InMemoryStore{
 		Inventory: make(map[string]api.Stock, 0),
@@ -34,6 +37,7 @@ func NewInMemoryStore() Store {
 	}
 }
 
+// UpsertInventory updates in memory representation of the inventory
 func (s *InMemoryStore) UpsertInventory(inventory *api.Inventory) error {
 	s.Lock()
 	defer s.Unlock()
@@ -64,6 +68,7 @@ func (s *InMemoryStore) UpsertInventory(inventory *api.Inventory) error {
 	return nil
 }
 
+// GetStock returns stock for an article
 func (s *InMemoryStore) GetStock(artId string) (*api.Stock, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -77,6 +82,7 @@ func (s *InMemoryStore) GetStock(artId string) (*api.Stock, error) {
 	return nil, errors.New(fmt.Sprintf("ArtId %v does not exists", artId))
 }
 
+// ListInventory return the current representation of the inventory
 func (s *InMemoryStore) ListInventory() (*api.Inventory, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -91,6 +97,7 @@ func (s *InMemoryStore) ListInventory() (*api.Inventory, error) {
 	}, nil
 }
 
+// ListProducts returns the current representation of the products
 func (s *InMemoryStore) ListProducts() (*api.Products, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -105,6 +112,7 @@ func (s *InMemoryStore) ListProducts() (*api.Products, error) {
 	}, nil
 }
 
+// UpsertProducts updates in memory representation of the inventory
 func (s *InMemoryStore) UpsertProducts(products *api.Products) error {
 	s.Lock()
 	defer s.Unlock()
@@ -114,20 +122,28 @@ func (s *InMemoryStore) UpsertProducts(products *api.Products) error {
 	return nil
 }
 
+// SellProducts processes a sell order and updates the inventory accordingly
 func (s *InMemoryStore) SellProducts(sellOrder *api.SellOrder) error {
 	s.Lock()
 	defer s.Unlock()
+	// Calculate and reduce sell order of multiple products to a map of article id to required stock
 	inventoryChangeMap, err := s.CalculateInventoryChangeMap(sellOrder)
 	if err != nil {
 		return err
 	}
+	// First check if it is possible process this order
+	// Without this a rollback would have been needed for failed orders.
 	err = s.CheckInventory(inventoryChangeMap)
 	if err != nil {
 		return err
 	}
+	// Apply the actual order. Sice there is a write lock this process it atomic for inventory.
 	return s.DecrementInventory(inventoryChangeMap)
 }
 
+// CalculateInventoryChangeMap calculates required articles based on multiple products.
+// A sell order can hold multiple products and products can share the same article
+// this method sums and return a map of article id to int values
 func (s *InMemoryStore) CalculateInventoryChangeMap(sellOrder *api.SellOrder) (map[string]int, error) {
 	inventoryChangeMap := make(map[string]int, len(sellOrder.Orders))
 	for _, order := range sellOrder.Orders {
@@ -150,14 +166,18 @@ func (s *InMemoryStore) CalculateInventoryChangeMap(sellOrder *api.SellOrder) (m
 	return inventoryChangeMap, nil
 }
 
+// DecrementInventory updates the inventory with giveninventoryChangeMap
 func (s *InMemoryStore) DecrementInventory(inventoryChangeMap map[string]int) error {
 	return s.decrementInventoryWithCheck(inventoryChangeMap, true)
 }
 
+// CheckInventory checks if it is possible to update the inventory with giveninventoryChangeMap
 func (s *InMemoryStore) CheckInventory(inventoryChangeMap map[string]int) error {
 	return s.decrementInventoryWithCheck(inventoryChangeMap, false)
 }
 
+// decrementInventoryWithCheck allow updateing or checking the inventory with giveninventoryChangeMap
+// When apply set to false it only check if it is possible to process a sell order
 func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[string]int, apply bool) error {
 	for articleID, change := range inventoryChangeMap {
 		if stock, ok := s.Inventory[articleID]; ok {
@@ -184,6 +204,7 @@ func (s *InMemoryStore) decrementInventoryWithCheck(inventoryChangeMap map[strin
 	return nil
 }
 
+// ListProductStocks list the currenly available products based on inventory
 func (s *InMemoryStore) ListProductStocks() (*api.ProductStocks, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -202,6 +223,9 @@ func (s *InMemoryStore) ListProductStocks() (*api.ProductStocks, error) {
 	}, nil
 }
 
+// GetStockForProduct returns the possible stock for a product
+// It returns the stock of the least available article in a product.
+// So lack of an article can create bottlenack for a product
 func (s *InMemoryStore) GetStockForProduct(product *api.Product) int {
 	minimumNumberOfPossibleArticles := -1
 	for _, articles := range *product.ContainArticles {

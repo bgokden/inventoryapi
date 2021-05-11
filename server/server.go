@@ -9,40 +9,21 @@ import (
 	"github.com/bgokden/inventoryapi/store"
 )
 
-/*
-	// Inventory API implements these methods
-	// Get current inventory
-	// (GET /inventory)
-	GetInventory(ctx echo.Context) error
-	// Inserts or Updates stocks in Inventory
-	// (POST /inventory)
-	UpsertInventory(ctx echo.Context) error
-	// Lists products
-	// (GET /products)
-	ListProducts(ctx echo.Context) error
-	// Insert or Update products
-	// (POST /products)
-	UpsertProducts(ctx echo.Context) error
-	// Lists products with stock
-	// (GET /productstock)
-	ListProductStocks(ctx echo.Context) error
-	// Sell specified products and update Inventory
-	// (POST /sell)
-	SellFromInventory(ctx echo.Context) error
-*/
+// InventoryAPI implements api.ServerInterface and holds a store
 type InventoryAPI struct {
 	Store store.Store
 }
 
 func NewInventoryAPI() *InventoryAPI {
 	return &InventoryAPI{
+		// Here is it hardcoded to use a in memory store, in production this can be a database store
+		// And it can be parametrized.
 		Store: store.NewInMemoryStore(),
 	}
 }
 
-// GetInventory converts echo context to params.
+// GetInventory converts echo context to params and calls store get inventory
 func (ia *InventoryAPI) GetInventory(ctx echo.Context) error {
-	// Invoke the callback with all the unmarshalled arguments
 	result, err := ia.Store.ListInventory()
 	if err != nil {
 		return err
@@ -50,7 +31,7 @@ func (ia *InventoryAPI) GetInventory(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, result)
 }
 
-// UpsertInventory converts echo context to params.
+// UpsertInventory converts echo context to params and calls store upsert inventory
 func (ia *InventoryAPI) UpsertInventory(ctx echo.Context) error {
 	var err error
 	var newInventory api.Inventory
@@ -62,16 +43,8 @@ func (ia *InventoryAPI) UpsertInventory(ctx echo.Context) error {
 	return err
 }
 
-/*
-curl -v --header "Content-Type: application/json" \
-  --request POST \
-  --data '{"inventory":[{"art_id":"1","name":"test1","stock":"5"},{"art_id":"2","name":"test2","stock":"3"}]}' \
-  http://localhost:8080/inventory
-*/
-
-// ListProducts converts echo context to params.
+// ListProducts converts echo context to params and calls store list products
 func (ia *InventoryAPI) ListProducts(ctx echo.Context) error {
-	// Invoke the callback with all the unmarshalled arguments
 	result, err := ia.Store.ListProducts()
 	if err != nil {
 		return err
@@ -79,7 +52,7 @@ func (ia *InventoryAPI) ListProducts(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, result)
 }
 
-// UpsertProducts converts echo context to params.
+// UpsertProducts converts echo context to params and calls store upsert products
 func (ia *InventoryAPI) UpsertProducts(ctx echo.Context) error {
 	var err error
 	var newProducts api.Products
@@ -91,9 +64,8 @@ func (ia *InventoryAPI) UpsertProducts(ctx echo.Context) error {
 	return err
 }
 
-// ListProductStocks converts echo context to params.
+// ListProductStocks converts echo context to params and calls Store List Product Stocks
 func (ia *InventoryAPI) ListProductStocks(ctx echo.Context) error {
-	// Invoke the callback with all the unmarshalled arguments
 	result, err := ia.Store.ListProductStocks()
 	if err != nil {
 		return err
@@ -101,7 +73,7 @@ func (ia *InventoryAPI) ListProductStocks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, result)
 }
 
-// SellFromInventory converts echo context to params.
+// SellFromInventory converts echo context to params and calls Store Sell Products
 func (ia *InventoryAPI) SellFromInventory(ctx echo.Context) error {
 	var err error
 	var sellOrder api.SellOrder
