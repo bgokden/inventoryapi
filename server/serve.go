@@ -22,6 +22,13 @@ func CreateEchoServer() (*echo.Echo, error) {
 
 	// This is how you set up a basic Echo router
 	e := echo.New()
+
+	// Added this locally to show queries in the Swagger UI
+	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+		AllowOrigins: []string{"https://editor.swagger.io"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+
 	// Log all requests
 	e.Use(echomiddleware.Logger())
 	// Use our validation middleware to check all requests against the

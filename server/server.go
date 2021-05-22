@@ -37,10 +37,13 @@ func (ia *InventoryAPI) UpsertInventory(ctx echo.Context) error {
 	var newInventory api.Inventory
 	err = ctx.Bind(&newInventory)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	err = ia.Store.UpsertInventory(&newInventory)
-	return err
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return nil
 }
 
 // ListProducts converts echo context to params and calls store list products
@@ -58,17 +61,20 @@ func (ia *InventoryAPI) UpsertProducts(ctx echo.Context) error {
 	var newProducts api.Products
 	err = ctx.Bind(&newProducts)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	err = ia.Store.UpsertProducts(&newProducts)
-	return err
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return nil
 }
 
 // ListProductStocks converts echo context to params and calls Store List Product Stocks
 func (ia *InventoryAPI) ListProductStocks(ctx echo.Context) error {
 	result, err := ia.Store.ListProductStocks()
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return ctx.JSON(http.StatusOK, result)
 }
@@ -79,8 +85,11 @@ func (ia *InventoryAPI) SellFromInventory(ctx echo.Context) error {
 	var sellOrder api.SellOrder
 	err = ctx.Bind(&sellOrder)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	err = ia.Store.SellProducts(&sellOrder)
-	return err
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return nil
 }
